@@ -310,7 +310,7 @@ Check `monitor_status.txt` for real-time status:
 Via the web UI running on `localhost:8000` you can see which users are enabled, online, and being recorded.
 
 You can also add streamers, and stop and pause the monitor. You can further inspect the recordings directory to see 
-what files have been written to disk and download them if you want.
+what files have been written to disk, preview tables, and download them if you want.
 
 Finally, there is a schedule to pause the monitor between two time slots, for example at night.
 
