@@ -27,6 +27,7 @@ PRIORITY_GROUPS = ["high", "medium", "low"]
 
 import subprocess
 import json
+import csv
 
 def get_mp4_duration(path: Path) -> str | None:
     try:
@@ -362,6 +363,11 @@ class TikUIApp:
                 for file in files:
                     name = html.escape(file["name"])
                     dl_url = f"/files/download/{name}"
+                    # Preview is only available for CSV files
+                    if name.lower().endswith(".csv"):
+                        preview_cell = f'<a href="/files/preview/{name}">Preview</a>'
+                    else:
+                        preview_cell = ""
 
                     rows.append(f"""
                     <tr>
@@ -371,6 +377,7 @@ class TikUIApp:
                         <td>{file["duration"]}</td>
                         <td><a href="{dl_url}">Download</a>
                         </td>
+                        <td>{preview_cell}</td>
                     </tr>
                     """)
 
@@ -386,7 +393,7 @@ class TikUIApp:
             <body>
                 <h2>Available files</h2>
                 <table>
-                <tr><th>Name</th><th>Size</th><th>Modified</th><th>Duration</th><th>Download</th></tr>
+                <tr><th>Name</th><th>Size</th><th>Modified</th><th>Duration</th><th>Download</th><th>Preview</th></tr>
                 {''.join(rows)}
                 </table>
             </body>
@@ -415,6 +422,55 @@ class TikUIApp:
                 filename=path.name,
                 headers={"Content-Disposition": f'attachment; filename="{path.name}"'}
             )
+
+        @self.app.get("/files/preview/{name}.csv", response_class=HTMLResponse)
+        def preview_csv(name: str):
+            # Reconstruct the full filename, _resolve_file validates path and extension
+            path = self._resolve_file(f"{name}.csv")
+
+            if path.suffix.lower() != ".csv":
+                raise HTTPException(400, "Only CSV files can be previewed")
+
+            with open(path, newline="", encoding="utf-8") as f:
+                reader = csv.reader(f)
+                rows = list(reader)
+
+            filename = html.escape(path.name)
+            dl_url = f"/files/download/{filename}"
+
+            if not rows:
+                table = "<p>Empty file</p>"
+            else:
+                header, *body = rows
+                head_cells = "".join(f"<th>{html.escape(c)}</th>" for c in header)
+                body_rows = []
+                for row in body:
+                    cells = "".join(f"<td>{html.escape(c)}</td>" for c in row)
+                    body_rows.append(f"<tr>{cells}</tr>")
+                table = f"""
+                <table>
+                <thead><tr>{head_cells}</tr></thead>
+                <tbody>{''.join(body_rows)}</tbody>
+                </table>
+                """
+
+            return f"""
+            <html>
+            <head>
+                <title>Preview: {filename}</title>
+                <style>
+                table {{ border-collapse: collapse }}
+                td, th {{ border: 1px solid #ccc; padding: 6px }}
+                th {{ background: #f0f0f0 }}
+                </style>
+            </head>
+            <body>
+                <h2>Preview: {filename}</h2>
+                <p><a href="/files">&larr; Back to files</a> | <a href="{dl_url}">Download</a></p>
+                {table}
+            </body>
+            </html>
+            """
         
     def setup_streamers_api(self):
         @self.app.get("/api/streamers")
