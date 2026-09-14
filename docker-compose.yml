@@ -40,7 +40,6 @@ services:
       - ../files/recordings:/app/recordings
       # streamers_config.json plus the timestamped copies written by the Save button
       - ../files/data:/app/data
-      - ../files/data:/app/data/streamers_config.json
       # monitor_[date].log and monitoring_sessions_[date].csv
       - ../files/logs:/app/logs
 
