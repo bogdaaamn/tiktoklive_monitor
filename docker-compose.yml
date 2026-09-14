@@ -1,0 +1,69 @@
+# TikTok Live Stream Monitor - Docker Compose deployment, written for Dokploy.
+#
+# Required environment variables, set them in the Dokploy UI (Environment tab),
+# Dokploy writes them to the .env file next to this compose file:
+#
+#   WEB_UI_USERNAME   username for the Basic auth protecting the web interface
+#   WEB_UI_PASSWORD   password for the Basic auth, use a long random one
+#
+# The deployment fails fast when the credentials are missing, the interface is
+# reachable from the internet once a domain is attached and must never run
+# unauthenticated. Attach the domain to the monitor service from the Dokploy UI.
+#
+# Persistent data lives in Docker named volumes, which survive redeploys and are
+# the only form of storage Dokploy can back up.
+
+services:
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+    environment:
+      # Basic auth for the web interface, see ui/auth.py
+      - WEB_UI_USERNAME=${WEB_UI_USERNAME:?set WEB_UI_USERNAME in the Dokploy environment}
+      - WEB_UI_PASSWORD=${WEB_UI_PASSWORD:?set WEB_UI_PASSWORD in the Dokploy environment}
+      - WEB_UI_REALM=${WEB_UI_REALM:-TikTok Live Monitor}
+      # Keep the configuration on the persistent volume instead of inside the image
+      - CONFIG_FILE=/app/data/streamers_config.json
+      - TZ=${TZ:-Europe/Amsterdam}
+
+    volumes:
+      # Recordings and their per-stream CSV files, by far the largest volume
+      - recordings:/app/recordings
+      # streamers_config.json plus the timestamped copies written by the Save button
+      - data:/app/data
+      # monitor_[date].log and monitoring_sessions_[date].csv
+      - logs:/app/logs
+
+    # Exposed to Traefik on the internal network only, never published on the host
+    ports:
+      - 8000
+
+    # 401 without credentials and 200 with them both mean the interface is up,
+    # start_period covers the dependency install done on the first boot
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import http.client, sys; c = http.client.HTTPConnection("127.0.0.1", 8000, timeout=5); c.request("GET", "/"); sys.exit(0 if c.getresponse().status in (200, 401) else 1)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+
+    # Recordings are written continuously, give ffmpeg time to close the files
+    stop_grace_period: 60s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  recordings:
+  data:
+  logs:

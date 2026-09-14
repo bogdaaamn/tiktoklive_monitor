@@ -1,4 +1,21 @@
+#!/usr/bin/env bash
 app_name=tiktok_mon
+
+# Basic auth credentials for the Web UI, passed to the container if set in the
+# environment, e.g. WEB_UI_USERNAME=admin WEB_UI_PASSWORD=secret ./startDocker.sh -p
+web_ui_env=()
+for var in WEB_UI_USERNAME WEB_UI_PASSWORD WEB_UI_REALM
+do
+    if [ ! -z "${!var}" ]
+    then
+        web_ui_env+=(-e "${var}=${!var}")
+    fi
+done
+
+if [ -z "${WEB_UI_USERNAME}" ] || [ -z "${WEB_UI_PASSWORD}" ]
+then
+    echo "WARNING: WEB_UI_USERNAME/WEB_UI_PASSWORD not set, the Web UI will be unauthenticated"
+fi
 
 while getopts "bcglprs" options
 do
@@ -47,13 +64,14 @@ fi
 
 if [ ! -z "${do_run}" ]
 then
-    docker run -d -p 8000:8000 --name ${app_name}_container ${app_name}
+    docker run -d -p 8000:8000 "${web_ui_env[@]}" --name ${app_name}_container ${app_name}
 fi
 
 if [ ! -z "${do_production}" ]
 then
     docker run -d \
         -p 8000:8000 \
+        "${web_ui_env[@]}" \
         --restart unless-stopped \
         --name ${app_name}_container \
         ${app_name}

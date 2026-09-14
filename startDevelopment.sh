@@ -1,1 +1,1 @@
-./start.sh DEV streamers_config.json
+./start.sh DEV "${CONFIG_FILE:-streamers_config.json}"

@@ -5,3 +5,4 @@ __pycache__/
 recordings/
 logs/
 monitor_status.txt
+.web_ui_auth

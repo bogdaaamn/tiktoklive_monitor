@@ -190,3 +190,4 @@ debug_*
 *.sqlite
 *.sqlite3
 .api_key
+.web_ui_auth

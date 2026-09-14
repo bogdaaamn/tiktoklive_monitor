@@ -4,6 +4,7 @@ from asyncio import Task
 from typing import Optional
 import json
 import logging
+import os
 from pathlib import Path
 import copy
 import sys
@@ -21,6 +22,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from monitor.stream_monitor import StreamMonitor
+from ui.auth import DEFAULT_REALM, BasicAuthMiddleware, get_credentials
 from utils.system_utils import debug_breakpoint
 
 PRIORITY_GROUPS = ["high", "medium", "low"]
@@ -182,6 +184,7 @@ class TikUIApp:
         self.app = FastAPI()
         self.allowed_exts = {".mp4", ".csv"}
         self.setup_routes()
+        self.setup_auth()
         self.schedule_state = ScheduleState(action = self.monitor.pause_monitoring)
   
     # ---------- Load / Save ----------
@@ -226,7 +229,9 @@ class TikUIApp:
         """
         suffix = f'{datetime.now().strftime("%d-%m-%Y_%H:%M:%S")}'
         path = Path(self._get_conf_file_path())
-        web_file_path = f"{path.stem}_{suffix}{path.suffix}"
+        # with_name keeps the copy in the same directory as the config file, so it lands on the
+        # persistent volume when the config lives outside the working directory
+        web_file_path = path.with_name(f"{path.stem}_{suffix}{path.suffix}")
         streamers = self._get_streamers()
         settings = self._get_settings()
         obj = {"streamers": streamers, "settings": settings}
@@ -281,6 +286,24 @@ class TikUIApp:
             raise HTTPException(404, "File not found")
 
         return path
+
+    def setup_auth(self):
+        """
+        Protect the whole interface with HTTP Basic auth when credentials are
+        configured in the environment, see ui/auth.py
+        """
+        credentials = get_credentials()
+
+        if credentials is None:
+            self.logger.warning(
+                "⚠️  Web interface is UNAUTHENTICATED - set WEB_UI_USERNAME and WEB_UI_PASSWORD to protect it"
+            )
+            return
+
+        username, password = credentials
+        realm = os.environ.get("WEB_UI_REALM", DEFAULT_REALM)
+        self.app.add_middleware(BasicAuthMiddleware, username=username, password=password, realm=realm)
+        self.logger.info(f"🔒 Web interface protected with Basic auth (user: {username})")
 
     def setup_routes(self):
         self.setup_file_routes()

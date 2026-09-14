@@ -29,6 +29,7 @@ This tool monitors multiple TikTok streamers simultaneously and automatically st
 - **Session ID support** - Access age-restricted and private streams
 - **Configurable data centers** - Choose optimal TikTok endpoints
 - **Per-streamer authentication** - Individual session IDs per creator
+- **Protected Web UI** - Optional HTTP Basic auth on the whole web interface
 
 ## 🚀 Quick Start
 
@@ -270,15 +271,61 @@ You can also run the app using two provided script:
 - `startDevelopment.sh` for development purposes
 - `startProduction.sh` for running the app in a `screen` process with logging to file.
 
+Both scripts will warn you if the web UI is left unauthenticated, see [Protecting the Web UI](#protecting-the-web-ui).
+
 Both scripts will make use of an API_KEY in the `.api_key` file if one is present. This api key is for euler signing service, and allows to increase the rate limits. You can create your free api key [here](https://www.eulerstream.com/dashboard).
 
 #### Using Docker
 Use the script `startDocker.sh` with `-r` (run) option or `-p` (production).
 This script will build a python image and run the container, using the provided `Dockerfile`, which takes care of installing dependencies and running the app (with API_KEY if present, as described above).
 
-The script also maps the port 8000 in the container to localhost:8000, so you can see the web UI if you can access the server's 8000 port, for example with an ssh tunnel.
+The script also maps the port 8000 in the container to localhost:8000, so you can see the web UI if you can access the server's 8000 port, for example with an ssh tunnel. If `WEB_UI_USERNAME` and `WEB_UI_PASSWORD` are set in your shell they are passed to the container, see [Protecting the Web UI](#protecting-the-web-ui).
 
 You can show the container log running the script with the option `-l`, and copy saved conf files from the container to your current directory with the option `-g`. Monitoring can be stopped via the Web UI or running the script with the option `-s`.
+
+#### Using Docker Compose (Dokploy)
+
+The `docker-compose.yml` file deploys the app on [Dokploy](https://docs.dokploy.com/docs/core/docker-compose).
+Create a Compose service pointing at this repository, then set these variables in the Environment tab:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `WEB_UI_USERNAME` | yes | Username for the Basic auth on the web interface |
+| `WEB_UI_PASSWORD` | yes | Password for the Basic auth, use a long random one |
+| `WEB_UI_REALM` | no | Text shown in the browser login prompt |
+| `TZ` | no | Timezone used by the schedule, defaults to `Europe/Amsterdam` |
+
+The deployment **fails to start** if the credentials are missing, since the interface is reachable
+from the internet once you attach a domain and must never run unauthenticated. Attach the domain to
+the `monitor` service from the Dokploy UI, which adds the Traefik routing for you.
+
+Persistent data lives in Docker named volumes, which survive redeploys and are the only form of
+storage Dokploy is able to back up:
+
+| Volume | Container path | Contents |
+|--------|----------------|----------|
+| `recordings` | `/app/recordings` | Recorded `.mp4` files and their per-stream CSV files |
+| `data` | `/app/data` | `streamers_config.json` and the copies written by the Save button |
+| `logs` | `/app/logs` | `monitor_[date].log` and `monitoring_sessions_[date].csv` |
+
+Dokploy prefixes them with the project name, so they appear as `<project>_recordings` and so on. To
+read a file straight from a volume, for instance to pull a recording off the server:
+
+```bash
+docker run --rm -v <project>_recordings:/v -v "$PWD":/out alpine cp /v/<recording>.mp4 /out/
+```
+
+The configuration lives on the volume rather than in the image, so the streamer list survives a
+redeploy. This is done with the `CONFIG_FILE` variable, which `startDevelopment.sh` and
+`startProduction.sh` also honour outside of Docker:
+
+```bash
+CONFIG_FILE=/path/to/streamers_config.json ./startProduction.sh
+```
+
+On the first deployment the volume is empty, so the app creates a configuration file with the default
+content, which you then edit from the web UI or in place with
+`docker exec -it <container> vi /app/data/streamers_config.json`, the monitor reloads it on the fly.
 
 
 ## 📊 Monitoring & Analytics
@@ -315,6 +362,52 @@ what files have been written to disk, preview tables, and download them if you w
 Finally, there is a schedule to pause the monitor between two time slots, for example at night.
 
 All pause functionality does not stop running recordings, just the monitor for users going live.
+
+### Protecting the Web UI
+
+The web interface exposes the recordings and the monitor controls, so it should not be reachable by
+anyone but you. It supports HTTP Basic authentication, enabled by providing a username and a password
+through the environment:
+
+```bash
+export WEB_UI_USERNAME=admin
+export WEB_UI_PASSWORD=a_long_random_password
+export WEB_UI_REALM="TikTok Live Monitor"   # optional, shown in the browser prompt
+
+./startProduction.sh     # or ./startDevelopment.sh
+```
+
+`startDevelopment.sh` and `startProduction.sh` also accept the credentials in a `.web_ui_auth` file,
+in the same spirit as the `.api_key` file, which avoids exporting the password in every shell. The
+file holds a single line, and only the first colon separates the two values, so the password may
+itself contain colons:
+
+```bash
+echo 'admin:a_long_random_password' > .web_ui_auth
+chmod 600 .web_ui_auth
+```
+
+The environment takes precedence over the file. `.web_ui_auth` is listed in `.gitignore` and in
+`.dockerignore`, so the credentials are never committed nor baked into the Docker image.
+
+With Docker, the variables are picked up from your shell by `startDocker.sh` and passed to the
+container:
+
+```bash
+WEB_UI_USERNAME=admin WEB_UI_PASSWORD=a_long_random_password ./startDocker.sh -p
+```
+
+Once set, every request is challenged, including the API endpoints, the static files and the
+recordings download and preview pages. Your browser asks for the credentials on the first visit.
+
+If no credentials are provided, the interface stays open to anyone who can reach port 8000, the start
+scripts warn you and a warning is logged at startup. Credentials are only read from the environment, never from the
+configuration file, because config files are written to disk by the save button in the UI and copied
+out of the container by `startDocker.sh -g`.
+
+Note that Basic auth sends the credentials with every request, base64 encoded but not encrypted, so
+keep the port closed on the server and reach the UI through an ssh tunnel, or put it behind a reverse
+proxy with HTTPS.
 
 
 ## 🔍 Troubleshooting
