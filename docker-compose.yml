@@ -10,8 +10,13 @@
 # reachable from the internet once a domain is attached and must never run
 # unauthenticated. Attach the domain to the monitor service from the Dokploy UI.
 #
-# Persistent data lives in Docker named volumes, which survive redeploys and are
-# the only form of storage Dokploy can back up.
+# Persistent data lives in ../files, the folder Dokploy keeps across deployments,
+# so everything is readable on the host under the project directory. Never use
+# absolute host paths here, Dokploy cleans those up on redeploy.
+#
+# The configuration file is ../files/data/streamers_config.json on the host, see
+# the CONFIG_FILE variable below. Put yours there before the first deployment,
+# otherwise the app writes a default one you can edit afterwards.
 
 services:
   monitor:
@@ -25,17 +30,19 @@ services:
       - WEB_UI_USERNAME=${WEB_UI_USERNAME:?set WEB_UI_USERNAME in the Dokploy environment}
       - WEB_UI_PASSWORD=${WEB_UI_PASSWORD:?set WEB_UI_PASSWORD in the Dokploy environment}
       - WEB_UI_REALM=${WEB_UI_REALM:-TikTok Live Monitor}
-      # Keep the configuration on the persistent volume instead of inside the image
+      # Configuration file, kept under ../files instead of inside the image
+      # Host path: ../files/data/streamers_config.json
       - CONFIG_FILE=/app/data/streamers_config.json
       - TZ=${TZ:-Europe/Amsterdam}
 
     volumes:
-      # Recordings and their per-stream CSV files, by far the largest volume
-      - recordings:/app/recordings
+      # Recordings and their per-stream CSV files, by far the largest directory
+      - ../files/recordings:/app/recordings
       # streamers_config.json plus the timestamped copies written by the Save button
-      - data:/app/data
+      - ../files/data:/app/data
+      - ../files/data:/app/data/streamers_config.json
       # monitor_[date].log and monitoring_sessions_[date].csv
-      - logs:/app/logs
+      - ../files/logs:/app/logs
 
     # Exposed to Traefik on the internal network only, never published on the host
     ports:
@@ -62,8 +69,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-volumes:
-  recordings:
-  data:
-  logs:
