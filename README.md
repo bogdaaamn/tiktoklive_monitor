@@ -325,33 +325,45 @@ The deployment **fails to start** if the credentials are missing, since the inte
 from the internet once you attach a domain and must never run unauthenticated. Attach the domain to
 the `monitor` service from the Dokploy UI, which adds the Traefik routing for you.
 
-Persistent data lives in Docker named volumes, which survive redeploys and are the only form of
-storage Dokploy is able to back up:
+Persistent data is bind mounted under `../files`, the folder Dokploy keeps across deployments, which
+also makes everything readable on the server with plain `ls` and `scp`:
 
-| Volume | Container path | Contents |
-|--------|----------------|----------|
-| `recordings` | `/app/recordings` | Recorded `.mp4` files and their per-stream CSV files |
-| `data` | `/app/data` | `streamers_config.json` and the copies written by the Save button |
-| `logs` | `/app/logs` | `monitor_[date].log` and `monitoring_sessions_[date].csv` |
+| Host path | Container path | Contents |
+|-----------|----------------|----------|
+| `../files/recordings` | `/app/recordings` | Recorded `.mp4` files and their per-stream CSV files |
+| `../files/data` | `/app/data` | `streamers_config.json` and the copies written by the Save button |
+| `../files/logs` | `/app/logs` | `monitor_[date].log` and `monitoring_sessions_[date].csv` |
 
-Dokploy prefixes them with the project name, so they appear as `<project>_recordings` and so on. To
-read a file straight from a volume, for instance to pull a recording off the server:
+The paths are relative to the compose file, which Dokploy puts in the project directory, so on the
+server they resolve to `/etc/dokploy/compose/<project>/files/...`. Never replace them with absolute
+host paths, those are cleaned up on redeploy.
 
-```bash
-docker run --rm -v <project>_recordings:/v -v "$PWD":/out alpine cp /v/<recording>.mp4 /out/
-```
-
-The configuration lives on the volume rather than in the image, so the streamer list survives a
-redeploy. This is done with the `CONFIG_FILE` variable, which `startDevelopment.sh` and
-`startProduction.sh` also honour outside of Docker:
+The configuration file is `../files/data/streamers_config.json`, so the streamer list lives next to
+the recordings instead of inside the image and survives a redeploy. This is done with the
+`CONFIG_FILE` variable, which `startDevelopment.sh` and `startProduction.sh` also honour outside of
+Docker:
 
 ```bash
 CONFIG_FILE=/path/to/streamers_config.json ./startProduction.sh
 ```
 
-On the first deployment the volume is empty, so the app creates a configuration file with the default
-content, which you then edit from the web UI or in place with
-`docker exec -it <container> vi /app/data/streamers_config.json`, the monitor reloads it on the fly.
+On the first deployment the folder is empty, so the app creates a configuration file with the default
+content, which you then edit from the web UI or directly on the server, the monitor reloads it on the
+fly. Config files are ignored by git, so one prepared locally never ends up in the repository, copy it
+across instead:
+
+```bash
+scp streamers_config.json user@server:/etc/dokploy/compose/<project>/files/data/
+```
+
+> **Never add a mount for `streamers_config.json` itself**, neither a File Mount nor a bind mount. The
+> compose file already mounts the whole `../files/data` directory, the file only has to exist inside
+> it. A mount pointing at a single file whose host path does not exist yet makes Docker create a
+> **directory** with that name, on the host and in the container, which is why `cat` then answers
+> `Is a directory`. The app does not stop on this, it logs `❌ Error loading config: Is a directory`
+> once and silently runs with the example configuration. To recover, remove the mount, stop the
+> stack, delete the stray directory with `rmdir files/data/streamers_config.json`, put the real file
+> there and deploy again.
 
 
 ## 📊 Monitoring & Analytics

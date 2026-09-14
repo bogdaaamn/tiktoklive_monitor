@@ -58,7 +58,19 @@ async def _fetch_user_room_data(cls, web: TikTokHTTPClient, unique_id: str) -> d
                     "Empty response from TikTok when fetching room data."
                 )
             else:
+                # Any other non JSON body, typically a block, a captcha or an error page.
+                # Report what TikTok actually replied, falling through from here used to
+                # leave response_json unassigned and raise a confusing UnboundLocalError.
+                logger = logging.getLogger(cls.__name__)
+                body = response.text[:500]
+                logger.warning(
+                    f"⚠️  Non JSON response (HTTP {response.status_code}) fetching room data for {unique_id}: {body!r}"
+                )
                 debug_breakpoint()
+                raise FailedParseRoomIdError(
+                    unique_id,
+                    f"Non JSON response from TikTok (HTTP {response.status_code}) when fetching room data: {body!r}"
+                )
 
         except Exception as e:
             logger = logging.getLogger(cls.__name__)
