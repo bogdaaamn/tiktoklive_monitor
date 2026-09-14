@@ -7,6 +7,7 @@ This tool monitors multiple TikTok streamers simultaneously and automatically st
 ## ✨ Features
 
 ### 🎯 **Core Functionality**
+
 - **Multi-streamer monitoring** - Track dozens of streamers simultaneously
 - **Automatic recording** - Starts recording the moment someone goes live
 - **Stability tracking** - Prevents false starts with configurable stability thresholds
@@ -14,18 +15,21 @@ This tool monitors multiple TikTok streamers simultaneously and automatically st
 - **Hot configuration reload** - Edit streamers list without restarting
 
 ### 📊 **Data Capture**
+
 - **Video recording** - Full stream video in MP4 format
 - **Interaction data** - Comments, gifts, follows, shares, joins, likes
 - **CSV export** - All interaction data saved in structured format
 - **Session logging** - Comprehensive monitoring statistics and events
 
 ### 🛡️ **Reliability Features**
+
 - **Disconnect handling** - Smart reconnection and confirmation delays
 - **Error recovery** - Robust error handling with automatic retries
 - **Resource monitoring** - Tracks file descriptors and system limits
 - **Cross-platform** - Works on Windows, macOS, and Linux
 
 ### 🔒 **Privacy & Authentication**
+
 - **Session ID support** - Access age-restricted and private streams
 - **Configurable data centers** - Choose optimal TikTok endpoints
 - **Per-streamer authentication** - Individual session IDs per creator
@@ -34,12 +38,14 @@ This tool monitors multiple TikTok streamers simultaneously and automatically st
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 ```bash
 # Install Python 3.8+ and pip
 python3 --version
 ```
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/pietervanboheemen/tiktoklive_monitor.git
@@ -53,6 +59,7 @@ mkdir recordings
 ```
 
 ### First Run
+
 ```bash
 # Start with default configuration (creates config file)
 python3 main.py
@@ -67,6 +74,7 @@ python3 main.py -c streamers_config.json
 ## 📖 Usage
 
 ### Basic Commands
+
 ```bash
 # Monitor with default settings
 python3 main.py
@@ -82,17 +90,19 @@ python3 main.py -c config.json -i 30 -o /recordings --verbose
 ```
 
 ### Command Line Options
-| Option | Description | Example |
-|--------|-------------|---------|
-| `-c, --config` | Configuration file path | `-c streamers.json` |
-| `-s, --session-id` | TikTok session ID | `-s abc123xyz` |
-| `-d, --data-center` | TikTok data center | `-d eu-ttp2` |
-| `-i, --check-interval` | Check interval (seconds) | `-i 45` |
-| `-o, --output-dir` | Output directory | `-o /recordings` |
-| `-t, --test` | Test mode (activates breakpoints for debugging purposes) | `-t` |
-| `-v, --verbose` | Enable verbose logging | `-v` |
+
+| Option                 | Description                                              | Example             |
+| ---------------------- | -------------------------------------------------------- | ------------------- |
+| `-c, --config`         | Configuration file path                                  | `-c streamers.json` |
+| `-s, --session-id`     | TikTok session ID                                        | `-s abc123xyz`      |
+| `-d, --data-center`    | TikTok data center                                       | `-d eu-ttp2`        |
+| `-i, --check-interval` | Check interval (seconds)                                 | `-i 45`             |
+| `-o, --output-dir`     | Output directory                                         | `-o /recordings`    |
+| `-t, --test`           | Test mode (activates breakpoints for debugging purposes) | `-t`                |
+| `-v, --verbose`        | Enable verbose logging                                   | `-v`                |
 
 ### Runtime Control
+
 Create these files to control the monitor while running:
 
 ```bash
@@ -109,6 +119,7 @@ cat monitor_status.txt
 ## ⚙️ Configuration
 
 ### Basic Configuration File
+
 ```json
 {
   "streamers": {
@@ -127,11 +138,11 @@ cat monitor_status.txt
   },
   "settings": {
     "check_interval_seconds": 60,
-    "max_concurrent_recordings": 15,
+    "max_concurrent_recordings": 50,
     "pause_monitoring_if_failure_seconds": 300,
     "output_directory": "recordings",
-    "record_video": true,
-    "session_id": "global_session_id",
+    "record_video": false,
+    "session_id": null,
     "tt_target_idc": "us-eastred",
     "whitelist_sign_server": "tiktok.eulerstream.com",
     "stability_threshold": 3,
@@ -146,12 +157,14 @@ cat monitor_status.txt
 ### Configuration Options
 
 #### Streamer Settings
+
 - **`enabled`** - Whether to monitor this streamer
 - **`session_id`** - Individual session ID (overrides global)
 - **`tags`** - Categories for organization
 - **`notes`** - Description or notes
 
 #### Global Settings
+
 - **`check_interval_seconds`** - How often to check if streamers are live
 - **`max_concurrent_recordings`** - Maximum simultaneous recordings
 - **`pause_monitoring_if_failure_seconds`** - Time to pause the monitor if TikTok is banning requests
@@ -193,6 +206,7 @@ video is recorded, so existing setups keep their current behaviour.
 ## 📂 Output Files
 
 ### Generated Files
+
 ```
 recordings/
 ├── creator1_20240703_143022.mp4              # Video recording
@@ -211,15 +225,18 @@ monitor_status.txt                            # Current status
 ```
 
 ### CSV Data Format
+
 Each interaction type is saved with timestamps and user details:
 
 **Comments CSV:**
+
 ```csv
 timestamp,user_id,nickname,comment,follower_count
 2024-07-03T14:30:22,user123,StreamFan,Great stream!,1250
 ```
 
 **Gifts CSV:**
+
 ```csv
 timestamp,user_id,nickname,gift_name,repeat_count,streakable,streaking
 2024-07-03T14:30:25,user456,Supporter,Rose,5,true,false
@@ -228,6 +245,7 @@ timestamp,user_id,nickname,gift_name,repeat_count,streakable,streaking
 ## 🔧 Advanced Usage
 
 ### Session ID Setup
+
 To access age-restricted or private streams, you need a TikTok session ID:
 
 1. **Get Session ID:**
@@ -237,6 +255,7 @@ To access age-restricted or private streams, you need a TikTok session ID:
    - Copy the `sessionid` value
 
 2. **Add to Configuration:**
+
    ```json
    {
      "settings": {
@@ -251,6 +270,7 @@ To access age-restricted or private streams, you need a TikTok session ID:
    ```
 
 ### Multiple Data Centers
+
 For better performance, you can specify TikTok data centers:
 
 ```bash
@@ -267,6 +287,7 @@ python3 main.py -d sg-ttp1
 ### Production Deployment
 
 #### Using systemd (Linux)
+
 Create `/etc/systemd/system/tiktok-monitor.service`:
 
 ```ini
@@ -287,13 +308,16 @@ WantedBy=multi-user.target
 ```
 
 Enable and start:
+
 ```bash
 sudo systemctl enable tiktok-monitor
 sudo systemctl start tiktok-monitor
 ```
 
 #### Using the provided scripts from command line
+
 You can also run the app using two provided script:
+
 - `startDevelopment.sh` for development purposes
 - `startProduction.sh` for running the app in a `screen` process with logging to file.
 
@@ -302,6 +326,7 @@ Both scripts will warn you if the web UI is left unauthenticated, see [Protectin
 Both scripts will make use of an API_KEY in the `.api_key` file if one is present. This api key is for euler signing service, and allows to increase the rate limits. You can create your free api key [here](https://www.eulerstream.com/dashboard).
 
 #### Using Docker
+
 Use the script `startDocker.sh` with `-r` (run) option or `-p` (production).
 This script will build a python image and run the container, using the provided `Dockerfile`, which takes care of installing dependencies and running the app (with API_KEY if present, as described above).
 
@@ -314,12 +339,12 @@ You can show the container log running the script with the option `-l`, and copy
 The `docker-compose.yml` file deploys the app on [Dokploy](https://docs.dokploy.com/docs/core/docker-compose).
 Create a Compose service pointing at this repository, then set these variables in the Environment tab:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `WEB_UI_USERNAME` | yes | Username for the Basic auth on the web interface |
-| `WEB_UI_PASSWORD` | yes | Password for the Basic auth, use a long random one |
-| `WEB_UI_REALM` | no | Text shown in the browser login prompt |
-| `TZ` | no | Timezone used by the schedule, defaults to `Europe/Amsterdam` |
+| Variable          | Required | Description                                                   |
+| ----------------- | -------- | ------------------------------------------------------------- |
+| `WEB_UI_USERNAME` | yes      | Username for the Basic auth on the web interface              |
+| `WEB_UI_PASSWORD` | yes      | Password for the Basic auth, use a long random one            |
+| `WEB_UI_REALM`    | no       | Text shown in the browser login prompt                        |
+| `TZ`              | no       | Timezone used by the schedule, defaults to `Europe/Amsterdam` |
 
 The deployment **fails to start** if the credentials are missing, since the interface is reachable
 from the internet once you attach a domain and must never run unauthenticated. Attach the domain to
@@ -328,11 +353,11 @@ the `monitor` service from the Dokploy UI, which adds the Traefik routing for yo
 Persistent data is bind mounted under `../files`, the folder Dokploy keeps across deployments, which
 also makes everything readable on the server with plain `ls` and `scp`:
 
-| Host path | Container path | Contents |
-|-----------|----------------|----------|
-| `../files/recordings` | `/app/recordings` | Recorded `.mp4` files and their per-stream CSV files |
-| `../files/data` | `/app/data` | `streamers_config.json` and the copies written by the Save button |
-| `../files/logs` | `/app/logs` | `monitor_[date].log` and `monitoring_sessions_[date].csv` |
+| Host path             | Container path    | Contents                                                          |
+| --------------------- | ----------------- | ----------------------------------------------------------------- |
+| `../files/recordings` | `/app/recordings` | Recorded `.mp4` files and their per-stream CSV files              |
+| `../files/data`       | `/app/data`       | `streamers_config.json` and the copies written by the Save button |
+| `../files/logs`       | `/app/logs`       | `monitor_[date].log` and `monitoring_sessions_[date].csv`         |
 
 The paths are relative to the compose file, which Dokploy puts in the project directory, so on the
 server they resolve to `/etc/dokploy/compose/<project>/files/...`. Never replace them with absolute
@@ -365,10 +390,10 @@ scp streamers_config.json user@server:/etc/dokploy/compose/<project>/files/data/
 > stack, delete the stray directory with `rmdir files/data/streamers_config.json`, put the real file
 > there and deploy again.
 
-
 ## 📊 Monitoring & Analytics
 
 ### Session Statistics
+
 The tool automatically generates session logs with statistics:
 
 ```csv
@@ -378,6 +403,7 @@ timestamp,username,action,status,duration_minutes,comments_count,gifts_count
 ```
 
 ### Status Monitoring
+
 Check `monitor_status.txt` for real-time status:
 
 ```json
@@ -394,7 +420,7 @@ Check `monitor_status.txt` for real-time status:
 
 Via the web UI running on `localhost:8000` you can see which users are enabled, online, and being recorded.
 
-You can also add streamers, and stop and pause the monitor. You can further inspect the recordings directory to see 
+You can also add streamers, and stop and pause the monitor. You can further inspect the recordings directory to see
 what files have been written to disk, preview tables, and download them if you want.
 
 Finally, there is a schedule to pause the monitor between two time slots, for example at night.
@@ -447,12 +473,12 @@ Note that Basic auth sends the credentials with every request, base64 encoded bu
 keep the port closed on the server and reach the UI through an ssh tunnel, or put it behind a reverse
 proxy with HTTPS.
 
-
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
 #### Import Errors
+
 ```bash
 # Ensure all __init__.py files exist
 touch config/__init__.py monitor/__init__.py recording/__init__.py utils/__init__.py
@@ -462,6 +488,7 @@ python3 -c "from monitor.stream_monitor import StreamMonitor; print('OK')"
 ```
 
 #### Connection Issues
+
 ```bash
 # Enable verbose logging
 python3 main.py --verbose
@@ -471,6 +498,7 @@ python3 main.py -s your_session_id --verbose
 ```
 
 #### Permission Errors
+
 ```bash
 # Linux/macOS: Fix recording directory permissions
 chmod 755 recordings/
@@ -480,11 +508,13 @@ chown -R $USER:$USER recordings/
 ```
 
 #### High CPU Usage
+
 - Increase `check_interval_seconds` in configuration
 - Reduce `max_concurrent_recordings`
 - Monitor system resources with `--verbose`
 
 ### Debug Mode
+
 ```bash
 # Maximum verbosity for troubleshooting
 python3 main.py --verbose -c config.json
@@ -503,6 +533,7 @@ print('Config loaded successfully')
 ## 🤝 Contributing
 
 ### Development Setup
+
 ```bash
 # Clone and setup
 git clone https://github.com/pietervanboheemen/tiktoklive_monitor.git
@@ -551,6 +582,7 @@ tiktoklive_monitor/
 ```
 
 ### Submitting Changes
+
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature-name`
 3. Make your changes and test thoroughly

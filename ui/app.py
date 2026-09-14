@@ -251,6 +251,7 @@ class TikUIApp:
         recorded = self._get_recording()
         live = self._get_live_streamers()
         # breakpoint()
+        self._fill_in_priorities(streamers)
         for k in streamers:
             if k in live:
                 streamers[k]['is_live'] = True
@@ -264,6 +265,35 @@ class TikUIApp:
             if streamers[k]['is_live'] or streamers[k]['is_recording']:
                 self.logger.debug(f"User {k} is live: {streamers[k]['is_live']}, is recording: {streamers[k]['is_recording']}")
         return streamers 
+
+    def _fill_in_priorities(self, streamers: dict[str,dict]):
+        """
+        Give a priority group and a priority to the streamers that have none.
+
+        Streamers added outside the web interface, for instance by conf_gen.py or by
+        editing the configuration file, carry no priority. The interface lists one group
+        at a time, so without a group they would match no list and stay invisible, while
+        the monitor keeps checking them normally. Operates on the copy handed to the web
+        interface, the configuration file is left untouched.
+        """
+        default_group = PRIORITY_GROUPS[-1]
+
+        for streamer in streamers.values():
+            if streamer.get('priority_group') not in PRIORITY_GROUPS:
+                streamer['priority_group'] = default_group
+
+        # Append the ones without a priority after the ones that have one, per group
+        next_priority = {}
+        for group in PRIORITY_GROUPS:
+            used = [s['priority'] for s in streamers.values()
+                    if s['priority_group'] == group and isinstance(s.get('priority'), int)]
+            next_priority[group] = max(used) + 1 if used else 0
+
+        for streamer in streamers.values():
+            if not isinstance(streamer.get('priority'), int):
+                group = streamer['priority_group']
+                streamer['priority'] = next_priority[group]
+                next_priority[group] += 1
 
     def _get_rec_dir(self):
         """
