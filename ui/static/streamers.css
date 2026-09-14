@@ -24,8 +24,16 @@ body { font-family: sans-serif; }
 }
 
 .item span.tags {
-    font-style: italic;
-    font-size: normal;
+    font-style: normal;
+    font-size: small;
+}
+.item a.tiktok-link {
+    font-size: small;
+    margin-left: 6px;
+    text-decoration: none;
+}
+.item a.tiktok-link:hover {
+    text-decoration: underline;
 }
 .item span.notes {
     font-style: normal;

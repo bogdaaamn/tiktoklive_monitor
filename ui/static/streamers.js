@@ -57,10 +57,20 @@ function closeMsgModal() {
   document.getElementById("msgModal").classList.add("hidden");
 }
 
+/** Builds the TikTok url for a streamer, the live one when the streamer is live */
+function tiktok_url(username, is_live) {
+  const handle = encodeURIComponent(username.replace(/^@/, ""));
+  return `https://www.tiktok.com/@${handle}${is_live ? "/live" : ""}`;
+}
+
 /** Creates the tile for each streamer */
-function make_item(username, priority, tags, notes, enabled) {
+function make_item(username, priority, tags, notes, enabled, is_live) {
+    const link_label = is_live ? "live \u2197" : "profile \u2197";
+    const link_title = is_live ? "Open the live stream on TikTok" : "Open the profile on TikTok";
     return `
-    <span class="username">${username}</span><br>
+    <span class="username">${username}</span>
+    <a class="tiktok-link" href="${tiktok_url(username, is_live)}" target="_blank"
+       rel="noopener noreferrer" title="${link_title}">${link_label}</a><br>
     <span class="priority">Priority: ${priority}</span><br>
     <span class="tags">Tags: ${tags.join(", ")}</span><br>
     <span class="notes">Notes: ${notes}</span><br>
@@ -128,7 +138,8 @@ async function show_streamers() {
     .filter(([_, value]) => value.priority_group === g)
     .filter(([_, value]) => !(btn_hideDisabled && !value.enabled))
     .filter(([_, value]) => !(btn_hideOffline && !value.is_live))
-    .sort(([, a], [, b]) => a.priority - b.priority)   // 🔑 THIS IS REQUIRED
+    // Live streamers on top, the rest keeps the priority order
+    .sort(([, a], [, b]) => (Number(b.is_live) - Number(a.is_live)) || (a.priority - b.priority))   // 🔑 THIS IS REQUIRED
     .forEach(([key, value]) => {
       const li = document.createElement("li");
       
@@ -146,7 +157,7 @@ async function show_streamers() {
       li.className = classes.join(" ");
 
       li.dataset.name = key;
-      li.innerHTML = make_item(key, value.priority, value.tags, value.notes, value.enabled);
+      li.innerHTML = make_item(key, value.priority, value.tags, value.notes, value.enabled, value.is_live);
     
       ul.appendChild(li);
     });
@@ -344,6 +355,8 @@ document.addEventListener("DOMContentLoaded", () => {
       group: "priority",
       animation: 150,
       draggable: "li.item",
+      filter: "a.tiktok-link",
+      preventOnFilter: false,
       onAdd: () => reorder(g, ul),
       onUpdate: () => reorder(g, ul),
       onRemove: () => reorder(g, ul)
