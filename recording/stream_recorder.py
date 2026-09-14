@@ -247,12 +247,17 @@ class StreamRecorder:
         async def on_connect(event: ConnectEvent):
             self.logger.info(f"📡 Connected to {username}'s stream (Room: {client.room_id})")
 
-            # Start video recording
-            video_file = await self.video_handler.start_video_recording(
-                client, username, recording_info['start_time']
-            )
-            if video_file:
-                recording_info['video_file'] = video_file
+            # Start video recording, unless only the interaction data is wanted.
+            # The setting is read at connection time, so it applies to the next
+            # recording after a config reload, not to recordings already running.
+            if self.config_manager.is_video_recording_enabled():
+                video_file = await self.video_handler.start_video_recording(
+                    client, username, recording_info['start_time']
+                )
+                if video_file:
+                    recording_info['video_file'] = video_file
+            else:
+                self.logger.info(f"🚫 Video recording disabled, capturing data only for {username}")
 
         @client.on(LiveEndEvent)
         async def on_live_end(event: LiveEndEvent):

@@ -81,6 +81,7 @@ class ConfigManager:
                 "max_concurrent_recordings": 5,
                 "pause_monitoring_if_failure_seconds": 300,
                 "output_directory": "recordings",
+                "record_video": True,
                 "session_id": None,
                 "tt_target_idc": "us-eastred",
                 "whitelist_sign_server": "tiktok.eulerstream.com",
@@ -228,6 +229,13 @@ class ConfigManager:
         """Get the current settings"""
         return self.config['settings']
     
+    def is_video_recording_enabled(self) -> bool:
+        """
+        Whether the video stream is saved to disk.
+        When disabled only the interaction data (comments, gifts, ...) is recorded.
+        """
+        return bool(self.config['settings'].get('record_video', True))
+
     def enable_streamer(self, streamer:str) -> bool:
         """Enable a streamer"""
         if not streamer in self.config['streamers']:

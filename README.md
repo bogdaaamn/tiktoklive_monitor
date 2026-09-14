@@ -130,6 +130,7 @@ cat monitor_status.txt
     "max_concurrent_recordings": 15,
     "pause_monitoring_if_failure_seconds": 300,
     "output_directory": "recordings",
+    "record_video": true,
     "session_id": "global_session_id",
     "tt_target_idc": "us-eastred",
     "whitelist_sign_server": "tiktok.eulerstream.com",
@@ -155,6 +156,7 @@ cat monitor_status.txt
 - **`max_concurrent_recordings`** - Maximum simultaneous recordings
 - **`pause_monitoring_if_failure_seconds`** - Time to pause the monitor if TikTok is banning requests
 - **`output_directory`** - Directory to store the recordings
+- **`record_video`** - Whether to save the video stream, see [Recording data without video](#recording-data-without-video)
 - **`session_id`** - Session ID to access 18+ content
 - **`tt_target_idc`** - The data center holding the user's account credentials (e.g. eu-ttp2)
 - **`whitelist_sign_server`** - The Sign server to sign requests to TikTok
@@ -163,6 +165,30 @@ cat monitor_status.txt
 - **`disconnect_confirmation_delay_seconds`** - Time to wait before confirming disconnect
 - **`individual_check_timeout`** - Time to wait for the reply to a request to see whether a user is live
 - **`max_retries`** - How many times to retry a request to see whether a user is live
+
+### Recording data without video
+
+Setting `record_video` to `false` stops the video stream from being saved, while everything else is
+recorded as usual: comments, gifts, follows, shares, joins and likes still go to their CSV files, and
+the session statistics are unchanged. Only the `.mp4` file is not produced.
+
+```json
+{
+  "settings": {
+    "record_video": false
+  }
+}
+```
+
+Use it when the interaction data is what matters, the video is by far the largest part of a recording
+in disk and bandwidth, and capturing someone's video is also the most sensitive part of it.
+
+The setting is read when a stream is connected, so it is picked up by the automatic config reload,
+without restarting the monitor. Recordings that are already running are not affected, they keep
+writing the video file they started, the change applies to the recordings that begin after it.
+
+The option is global, it applies to every streamer. If it is missing from the configuration file the
+video is recorded, so existing setups keep their current behaviour.
 
 ## 📂 Output Files
 
